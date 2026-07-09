@@ -180,7 +180,7 @@
             justify-content: space-between;
         }
 
-        /* Renomeado para coincidir com o script do cérebro (chat-container) */
+        /* ID ajustado para corresponder ao script externo */
         #chat-container {
             flex-grow: 1;
             overflow-y: auto;
@@ -199,10 +199,9 @@
             line-height: 1.6;
         }
 
-        .msg-usuario::before { content: "SENHOR: "; color: #00aaff; font-weight: bold; }
-        .msg-jarvis::before { content: "J.A.R.V.I.S.: "; color: #ff0055; font-weight: bold; }
-        .message.user::before { content: "SENHOR: "; color: #00aaff; font-weight: bold; }
-        .message.jarvis::before { content: "J.A.R.V.I.S.: "; color: #ff0055; font-weight: bold; }
+        /* Seletores compatíveis com ambas as versões do script */
+        .msg-usuario::before, .message.user::before { content: "SENHOR: "; color: #00aaff; font-weight: bold; }
+        .msg-jarvis::before, .message.jarvis::before { content: "J.A.R.V.I.S.: "; color: #ff0055; font-weight: bold; }
 
         .input-area {
             display: flex;
@@ -258,7 +257,8 @@
         const hudSystem = document.getElementById('hudSystem');
         const statusLabel = document.getElementById('statusLabel');
 
-        // Altera dinamicamente as animações visuais do Reator
+        // Controla as animações do Reator Arc HUD
+        // Usada pelo jarvis-brain.js para mudar para 'pensando', 'falando' ou 'ouvindo'
         function mudarEstadoHUD(estado, texto) {
             if (!hudSystem) return;
             hudSystem.className = "hud-container status-" + estado;
@@ -268,39 +268,44 @@
             if(estado === 'falando') statusLabel.style.color = '#00e5ff';
         }
 
-        // Transição imediata da Tela do Reator para o Chat Preto ao pressionar Enter
+        // Transição imediata da Tela do Reator para a tela limpa de Chat ao pressionar Enter
         function checkInitialEnter(event) {
             if (event.key === 'Enter') {
                 const initialInput = document.getElementById('initialInput');
                 if (initialInput.value.trim() !== '') {
                     const text = initialInput.value;
                     
-                    // Remove o HUD e abre a interface de texto preta
+                    // Esconde a interface do HUD e mostra o Chat
                     document.getElementById('assistant-screen').style.display = 'none';
                     document.getElementById('chat-screen').style.display = 'flex';
                     
-                    // Dispara para o arquivo externo jarvis-brain.js se comunicar com a Cloudflare
+                    // Envia o texto direto para o script que faz a ponte com a Cloudflare
                     if (typeof enviarMensagemJarvis === "function") {
                         enviarMensagemJarvis(text);
+                    } else if (typeof enviarMensagem === "function") {
+                        enviarMensagem(text);
                     }
                     initialInput.value = '';
                 }
             }
         }
 
+        // Envia as perguntas subsequentes feitas de dentro da tela de chat
         function checkChatEnter(event) {
             if (event.key === 'Enter') {
                 const input = document.getElementById('userInput');
                 if (input.value.trim() !== '') {
                     if (typeof enviarMensagemJarvis === "function") {
                         enviarMensagemJarvis(input.value);
+                    } else if (typeof enviarMensagem === "function") {
+                        enviarMensagem(input.value);
                     }
                     input.value = '';
                 }
             }
         }
 
-        // Ativação do instalador PWA no telemóvel
+        // Suporte para instalação como Aplicativo Móvel (PWA)
         let deferredPrompt;
         const installBtn = document.getElementById('install-btn');
 
