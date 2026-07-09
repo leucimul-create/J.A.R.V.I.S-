@@ -180,7 +180,8 @@
             justify-content: space-between;
         }
 
-        .chat-log {
+        /* Renomeado para coincidir com o script do cérebro (chat-container) */
+        #chat-container {
             flex-grow: 1;
             overflow-y: auto;
             border-bottom: 1px solid #111;
@@ -192,12 +193,14 @@
         }
 
         /* Letras Totalmente Brancas no Chat */
-        .message {
+        .message, .msg-usuario, .msg-jarvis {
             color: #ffffff; 
             font-size: 18px;
             line-height: 1.6;
         }
 
+        .msg-usuario::before { content: "SENHOR: "; color: #00aaff; font-weight: bold; }
+        .msg-jarvis::before { content: "J.A.R.V.I.S.: "; color: #ff0055; font-weight: bold; }
         .message.user::before { content: "SENHOR: "; color: #00aaff; font-weight: bold; }
         .message.jarvis::before { content: "J.A.R.V.I.S.: "; color: #ff0055; font-weight: bold; }
 
@@ -241,7 +244,7 @@
     </div>
 
     <div id="chat-screen">
-        <div class="chat-log" id="chatLog">
+        <div id="chat-container">
             <div class="message jarvis">Protocolos HUD recolhidos. Interface limpa ativada. Como posso ajudar o senhor hoje?</div>
         </div>
         <div class="input-area">
@@ -249,12 +252,15 @@
         </div>
     </div>
 
+    <script src="jarvis-brain.js"></script>
+
     <script>
         const hudSystem = document.getElementById('hudSystem');
         const statusLabel = document.getElementById('statusLabel');
 
-        // Alterna dinamicamente as animações visuais do Reator conforme o estado simulado
+        // Altera dinamicamente as animações visuais do Reator
         function mudarEstadoHUD(estado, texto) {
+            if (!hudSystem) return;
             hudSystem.className = "hud-container status-" + estado;
             statusLabel.innerText = texto;
             if(estado === 'ouvindo') statusLabel.style.color = '#00aaff';
@@ -273,7 +279,11 @@
                     document.getElementById('assistant-screen').style.display = 'none';
                     document.getElementById('chat-screen').style.display = 'flex';
                     
-                    processarMensagem(text);
+                    // Dispara para o arquivo externo jarvis-brain.js se comunicar com a Cloudflare
+                    if (typeof enviarMensagemJarvis === "function") {
+                        enviarMensagemJarvis(text);
+                    }
+                    initialInput.value = '';
                 }
             }
         }
@@ -282,30 +292,12 @@
             if (event.key === 'Enter') {
                 const input = document.getElementById('userInput');
                 if (input.value.trim() !== '') {
-                    processarMensagem(input.value);
+                    if (typeof enviarMensagemJarvis === "function") {
+                        enviarMensagemJarvis(input.value);
+                    }
                     input.value = '';
                 }
             }
-        }
-
-        function processarMensagem(text) {
-            const chatLog = document.getElementById('chatLog');
-            
-            // Adiciona mensagem do usuário (Letras totalmente brancas)
-            const userDiv = document.createElement('div');
-            userDiv.className = 'message user';
-            userDiv.innerText = text;
-            chatLog.appendChild(userDiv);
-            chatLog.scrollTop = chatLog.scrollHeight;
-
-            // Simula resposta rápida em texto branco do JARVIS
-            setTimeout(() => {
-                const jarvisDiv = document.createElement('div');
-                jarvisDiv.className = 'message jarvis';
-                jarvisDiv.innerText = "Dados processados com sucesso. O núcleo operacional está pronto para a próxima tarefa.";
-                chatLog.appendChild(jarvisDiv);
-                chatLog.scrollTop = chatLog.scrollHeight;
-            }, 800);
         }
 
         // Ativação do instalador PWA no telemóvel
@@ -315,16 +307,18 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'block';
+            if(installBtn) installBtn.style.display = 'block';
         });
 
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt = null;
-                installBtn.style.display = 'none';
-            }
-        });
+        if(installBtn) {
+            installBtn.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    deferredPrompt = null;
+                    installBtn.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 </html>
